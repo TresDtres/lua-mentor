@@ -48,12 +48,12 @@ python -m http.server 8000   # Python
 
 ### Option 4: GitHub Pages (free hosting)
 ```bash
-git clone https://github.com/YOUR_USERNAME/lua-mentor
+git clone https://github.com/TresDtres/lua-mentor
 # Rename lua-mentor.html to index.html
 git add . && git commit -m "Deploy Lua Mentor"
 git push origin main
 # Go to Settings → Pages → Source: main branch
-# Your URL: https://YOUR_USERNAME.github.io/lua-mentor
+# Your URL: https://TresDtres.github.io/lua-mentor
 ```
 
 ---
