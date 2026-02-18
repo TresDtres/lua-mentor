@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lua Mentor — Game Modding</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #080c14;
+    --surface: #0d1220;
+    --surface2: #111827;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code-bg: #060a10;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  code, pre, .mono { font-family: 'Space Mono', monospace; }
+
+  /* ONBOARDING SCREEN */
+  #onboarding {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; padding: 24px;
+  }
+  .onboard-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 80px rgba(0,229,255,0.06);
+  }
+  .logo-big {
+    font-size: 56px; font-weight: 900; font-family: 'Space Mono', monospace;
+    background: linear-gradient(135deg, #00e5ff, #7c3aed);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px; letter-spacing: -3px;
+  }
+  .onboard-card h2 { font-size: 20px; color: var(--muted); font-weight: 400; margin-bottom: 32px; }
+  .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 28px; }
+  .lang-btn {
+    padding: 14px; border-radius: 12px; border: 2px solid var(--border);
+    background: var(--surface2); cursor: pointer; font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700; color: var(--text); transition: all .2s;
+  }
+  .lang-btn:hover, .lang-btn.selected { border-color: var(--accent); background: rgba(0,229,255,.08); color: var(--accent); }
+  .name-input {
+    width: 100%; padding: 14px 18px; border-radius: 12px;
+    border: 2px solid var(--border); background: var(--code-bg);
+    color: var(--text); font-family: 'Syne', sans-serif; font-size: 15px;
+    outline: none; margin-bottom: 16px; transition: border .2s;
+  }
+  .name-input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; padding: 16px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #fff; font-family: 'Syne', sans-serif; font-size: 16px;
+    font-weight: 800; cursor: pointer; transition: opacity .2s; letter-spacing: .5px;
+  }
+  .btn-primary:hover { opacity: .88; }
+  .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* HEADER */
+  #header {
+    position: sticky; top: 0; z-index: 200;
+    background: rgba(8,12,20,.92); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px; gap: 16px;
+  }
+  .logo-sm { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .user-badge { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0; }
+  .progress-bar-wrap { flex: 1; max-width: 200px; }
+  .progress-bar-track { height: 5px; background: var(--border); border-radius: 99px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 99px; transition: width .5s ease; }
+  .lang-select { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); font-family: 'Syne', sans-serif;
+    font-size: 12px; cursor: pointer; outline: none; }
+  .btn-pdf {
+    padding: 8px 16px; border-radius: 8px; border: 1px solid var(--accent3);
+    background: rgba(16,185,129,.1); color: var(--accent3); font-family: 'Syne', sans-serif;
+    font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s;
+  }
+  .btn-pdf:hover { background: rgba(16,185,129,.2); }
+
+  /* LAYOUT */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  #main { display: flex; flex: 1; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 16px 12px;
+  }
+  .week-label {
+    font-size: 10px; font-weight: 800; color: var(--accent2);
+    letter-spacing: 2px; text-transform: uppercase;
+    padding: 10px 8px 6px; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+  }
+  .day-btn {
+    width: 100%; text-align: left; padding: 9px 10px; border-radius: 8px;
+    border: none; background: transparent; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600;
+    color: var(--muted); transition: all .15s; margin-bottom: 2px;
+    border-left: 3px solid transparent; display: flex; justify-content: space-between; align-items: center;
+  }
+  .day-btn:hover { background: rgba(255,255,255,.04); color: var(--text); }
+  .day-btn.active { background: rgba(124,58,237,.15); border-left-color: var(--accent2); color: var(--text); }
+  .day-btn.done { color: var(--accent3); }
+
+  /* CONTENT */
+  #content { flex: 1; overflow-y: auto; padding: 28px 32px; max-width: 860px; }
+
+  /* DAY HEADER */
+  .day-header {
+    background: linear-gradient(135deg, rgba(124,58,237,.08), rgba(0,229,255,.04));
+    border: 1px solid rgba(124,58,237,.25); border-radius: 16px;
+    padding: 22px 26px; margin-bottom: 24px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .day-tag { font-size: 11px; font-weight: 800; color: var(--accent2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .day-title { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .day-obj { font-size: 13px; color: var(--muted); }
+  .status-badge {
+    padding: 6px 14px; border-radius: 99px; font-size: 11px; font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab-btn {
+    padding: 10px 18px; border-radius: 8px 8px 0 0; border: none; cursor: pointer;
+    font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+    background: transparent; color: var(--muted); transition: all .2s;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { background: rgba(124,58,237,.15); color: var(--text); border-bottom-color: var(--accent2); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* THEORY */
+  .theory-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; line-height: 1.85;
+    font-size: 14px; color: #cbd5e1; margin-bottom: 20px;
+  }
+  .theory-block strong { color: var(--accent); }
+  .theory-block .note { background: rgba(0,229,255,.05); border-left: 3px solid var(--accent);
+    padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 13px; }
+
+  /* CODE BLOCKS */
+  .code-block {
+    background: var(--code-bg); border: 1px solid #1e3a5f;
+    border-radius: 12px; overflow: hidden; margin-bottom: 16px;
+  }
+  .code-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px; background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border); font-size: 11px;
+    font-family: 'Space Mono', monospace; color: var(--muted);
+  }
+  .code-body { padding: 20px; overflow-x: auto; }
+  .code-body pre { font-size: 12.5px; line-height: 1.7; font-family: 'Space Mono', monospace; }
+  .c-comment { color: #374151; }
+  .c-keyword { color: #c084fc; }
+  .c-string { color: #86efac; }
+  .c-number { color: #fbbf24; }
+  .c-func { color: #38bdf8; }
+  .c-builtin { color: #fb923c; }
+  .mentor-note {
+    background: rgba(0,229,255,.04); border: 1px solid rgba(0,229,255,.15);
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #94a3b8;
+  }
+  .mentor-note strong { color: var(--accent); }
+
+  /* EXERCISE */
+  .exercise-card {
+    background: rgba(124,58,237,.08); border: 1px solid rgba(124,58,237,.25);
+    border-radius: 12px; padding: 20px; margin-bottom: 18px;
+  }
+  .exercise-label { font-size: 11px; font-weight: 800; color: var(--accent2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .exercise-q { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: 12px; }
+  .hint-box {
+    background: rgba(0,0,0,.3); border-radius: 8px;
+    padding: 8px 14px; font-size: 12px; color: var(--muted);
+  }
+  .code-textarea {
+    width: 100%; height: 220px; background: var(--code-bg);
+    border: 1px solid #1e3a5f; border-radius: 12px;
+    padding: 18px; color: #a8d8ea; font-family: 'Space Mono', monospace;
+    font-size: 12.5px; line-height: 1.6; resize: vertical; outline: none;
+    transition: border .2s; margin-bottom: 14px;
+  }
+  .code-textarea:focus { border-color: var(--accent2); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .btn-submit {
+    padding: 11px 22px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #fff; font-family: 'Syne', sans-serif; font-size: 13px;
+    font-weight: 700; cursor: pointer; transition: opacity .2s;
+  }
+  .btn-submit:hover { opacity: .85; }
+  .btn-ghost {
+    padding: 11px 22px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; transition: all .2s;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+  .solution-box {
+    background: var(--code-bg); border: 1px solid rgba(245,158,11,.3);
+    border-radius: 12px; padding: 16px; overflow-x: auto;
+  }
+  .solution-warn { font-size: 11px; color: var(--warn); font-weight: 700; margin-bottom: 8px; }
+
+  /* QUIZ */
+  .quiz-intro {
+    background: rgba(0,229,255,.04); border: 1px solid rgba(0,229,255,.15);
+    border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #94a3b8; margin-bottom: 22px;
+  }
+  .quiz-q {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 14px; transition: border .3s;
+  }
+  .quiz-q.correct { border-color: var(--accent3); }
+  .quiz-q.wrong { border-color: var(--danger); }
+  .quiz-q-text { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .quiz-num { color: var(--accent2); margin-right: 8px; }
+  .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .quiz-opt {
+    padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: rgba(30,41,59,.5); cursor: pointer; text-align: left;
+    font-family: 'Syne', sans-serif; font-size: 12px; color: #94a3b8;
+    transition: all .15s; font-weight: 600;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--accent2); color: var(--text); background: rgba(124,58,237,.1); }
+  .quiz-opt.selected { border-color: var(--accent2); background: rgba(124,58,237,.15); color: var(--text); }
+  .quiz-opt.correct-ans { border-color: var(--accent3); background: rgba(16,185,129,.12); color: var(--accent3); }
+  .quiz-opt.wrong-ans { border-color: var(--danger); background: rgba(239,68,68,.08); color: var(--danger); }
+  .opt-letter { font-weight: 800; margin-right: 6px; }
+  .quiz-result {
+    border-radius: 16px; padding: 28px; text-align: center; margin-top: 20px;
+  }
+  .quiz-score-big { font-size: 56px; font-weight: 900; font-family: 'Space Mono', monospace; }
+  .btn-next {
+    margin-top: 16px; padding: 12px 28px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #fff; font-family: 'Syne', sans-serif; font-size: 14px;
+    font-weight: 800; cursor: pointer;
+  }
+
+  /* MENTOR FEEDBACK */
+  .mentor-feedback {
+    background: linear-gradient(135deg, rgba(16,185,129,.08), rgba(0,229,255,.04));
+    border: 1px solid rgba(16,185,129,.3); border-radius: 14px;
+    padding: 20px; margin-bottom: 24px; display: flex; gap: 16px; align-items: flex-start;
+  }
+  .mentor-avatar {
+    width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  }
+  .mentor-name { font-size: 11px; font-weight: 800; color: var(--accent3); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+  .mentor-msg { font-size: 13.5px; color: #cbd5e1; line-height: 1.7; }
+
+  /* RIGHT PANEL */
+  #right-panel {
+    width: 210px; flex-shrink: 0; padding: 20px 16px;
+    border-left: 1px solid var(--border); background: var(--surface);
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .panel-label { font-size: 10px; font-weight: 800; color: var(--accent2); letter-spacing: 2px; text-transform: uppercase; }
+  .check-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;
+    border: 1px solid var(--border); background: rgba(30,41,59,.4); color: var(--muted);
+    transition: all .3s;
+  }
+  .check-item.done { background: rgba(16,185,129,.08); border-color: var(--accent3); color: var(--accent3); }
+  .score-display {
+    background: rgba(124,58,237,.1); border: 1px solid rgba(124,58,237,.3);
+    border-radius: 10px; padding: 12px; text-align: center;
+  }
+  .score-num { font-size: 30px; font-weight: 900; font-family: 'Space Mono', monospace; }
+  .day-dots { display: flex; flex-wrap: wrap; gap: 4px; }
+  .day-dot {
+    width: 20px; height: 20px; border-radius: 4px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 800; color: #fff; transition: transform .1s;
+    background: var(--border);
+  }
+  .day-dot:hover { transform: scale(1.15); }
+  .day-dot.active { background: var(--accent2); }
+  .day-dot.done { background: var(--accent3); }
+
+  /* PDF MODAL */
+  #pdf-modal {
+    display: none; position: fixed; inset: 0; z-index: 500;
+    background: rgba(0,0,0,.7); align-items: center; justify-content: center; padding: 24px;
+  }
+  #pdf-modal.open { display: flex; }
+  .modal-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 36px; max-width: 480px; width: 100%;
+  }
+  .modal-title { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+  .modal-btn-row { display: flex; gap: 10px; }
+  .btn-cancel { padding: 12px 22px; border-radius: 10px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); font-family: 'Syne', sans-serif;
+    font-size: 13px; cursor: pointer; }
+
+  @media (max-width: 900px) {
+    #sidebar { display: none; }
+    #right-panel { display: none; }
+    #content { padding: 20px 16px; }
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn .3s ease; }
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="onboard-card fade-in">
+    <div class="logo-big">LUA</div>
+    <h2 id="ob-subtitle">Game Modding Mentor</h2>
+    <div class="lang-grid" id="lang-grid">
+      <button class="lang-btn" data-lang="en" onclick="selectLang(this)">🇬🇧 English</button>
+      <button class="lang-btn" data-lang="es" onclick="selectLang(this)">🇪🇸 Español</button>
+      <button class="lang-btn" data-lang="pt" onclick="selectLang(this)">🇧🇷 Português</button>
+      <button class="lang-btn" data-lang="fr" onclick="selectLang(this)">🇫🇷 Français</button>
+    </div>
+    <input id="name-input" class="name-input" type="text" maxlength="24" placeholder="Your name / Tu nombre…"/>
+    <button class="btn-primary" id="start-btn" onclick="startApp()" disabled>🚀 Start Learning</button>
+    <div style="margin-top:16px;font-size:11px;color:var(--muted)">Progress saved locally in your browser</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- HEADER -->
+  <div id="header">
+    <div class="logo-sm">LUA MENTOR</div>
+    <div class="progress-bar-wrap">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:3px" id="hdr-progress-label">0 / 0 days</div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="hdr-bar" style="width:0%"></div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <select class="lang-select" id="lang-switch" onchange="switchLang(this.value)">
+        <option value="en">🇬🇧 EN</option>
+        <option value="es">🇪🇸 ES</option>
+        <option value="pt">🇧🇷 PT</option>
+        <option value="fr">🇫🇷 FR</option>
+      </select>
+      <button class="btn-pdf" onclick="openPdfModal()">📄 Export PDF</button>
+      <div class="user-badge">
+        <div class="avatar" id="hdr-avatar">?</div>
+        <span style="font-size:13px;font-weight:700" id="hdr-name">...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="sidebar"></div>
+    <div id="content"></div>
+    <div id="right-panel"></div>
+  </div>
+</div>
+
+<!-- PDF MODAL -->
+<div id="pdf-modal">
+  <div class="modal-card fade-in">
+    <div class="modal-title" id="pdf-modal-title">📄 Export Progress Report</div>
+    <div class="modal-sub" id="pdf-modal-sub">Generate a PDF with your progress, scores, and completed exercises.</div>
+    <div class="modal-btn-row">
+      <button class="btn-primary" onclick="generatePDF()" id="pdf-go-btn">⬇️ Generate PDF</button>
+      <button class="btn-cancel" onclick="closePdfModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== TRANSLATIONS =====================
+const T = {
+  en: {
+    subtitle: "Your Senior Game Modding Mentor",
+    start: "🚀 Start Learning",
+    nameHolder: "Your name…",
+    savedLocal: "Progress saved locally in your browser",
+    theory: "📖 Theory", examples: "💻 Examples", exercise: "🏋️ Exercise", quiz: "📝 Quiz",
+    dayTag: "WEEK", dayOf: "Day",
+    understood: "✅ Got it → See Examples",
+    toPractice: "🏋️ Let's practice!",
+    exercise: "📝 EXERCISE",
+    hint: "💡 Hint",
+    submit: "📤 Submit Solution",
+    showSol: "👁️ Show Solution",
+    hideSol: "🙈 Hide Solution",
+    solWarn: "⚠️ OFFICIAL SOLUTION (try solving it first!)",
+    quizIntro: "Answer all questions without notes. 70%+ = advance. Your mentor will adjust the plan.",
+    evaluate: "📊 Evaluate",
+    nextDay: "➡️ Next Day",
+    completed: "✅ Completed",
+    inProgress: "🔓 In Progress",
+    mentor: "SENIOR MENTOR",
+    checkTheory: "📖 Theory read",
+    checkCode: "💻 Exercise attempted",
+    checkQuiz: "📝 Quiz done",
+    todayProgress: "Today's Progress",
+    allDays: "All Days",
+    lastQuiz: "Last Quiz",
+    pdfTitle: "📄 Export Progress Report",
+    pdfSub: "Generate a PDF with your progress, scores and completed exercises.",
+    pdfBtn: "⬇️ Generate PDF",
+    cancel: "Cancel",
+    hdrProgress: "days completed",
+    feedbackPerfect: "Perfect! 🏆 You've fully mastered this topic. You're ready to move on. Excellent conceptual clarity!",
+    feedback80: (s) => `Great job (${s}%). Solid foundation. Review your incorrect answers before advancing — just 10 minutes will reinforce those weak spots.`,
+    feedback60: (s) => `Good attempt (${s}%). Some concepts need reinforcement. Reread the theory and run the examples in your IDE before moving on. Which concept confused you most?`,
+    feedbackLow: (s) => `(${s}%) Don't get discouraged — this is completely normal. This topic needs more practice. Let's review: read the theory calmly, run each example, then retry the quiz.`,
+    feedbackCode: "I've logged your solution! Compare it with the official one — it doesn't need to be identical, just functionally correct. If there are differences, analyze why the solution uses that specific approach. Does your version handle edge cases like zero or negative values?",
+  },
+  es: {
+    subtitle: "Tu Mentor Senior de Modding",
+    start: "🚀 Comenzar",
+    nameHolder: "Tu nombre…",
+    savedLocal: "Progreso guardado en tu navegador",
+    theory: "📖 Teoría", examples: "💻 Ejemplos", exercise: "🏋️ Ejercicio", quiz: "📝 Quiz",
+    dayTag: "SEMANA", dayOf: "Día",
+    understood: "✅ Entendido → Ver Ejemplos",
+    toPractice: "🏋️ ¡A practicar!",
+    exercise: "📝 EJERCICIO",
+    hint: "💡 Pista",
+    submit: "📤 Entregar Solución",
+    showSol: "👁️ Ver Solución",
+    hideSol: "🙈 Ocultar",
+    solWarn: "⚠️ SOLUCIÓN OFICIAL (¡intenta resolver solo primero!)",
+    quizIntro: "Responde sin consultar notas. 70%+ = puedes avanzar. El mentor ajustará el plan.",
+    evaluate: "📊 Evaluar",
+    nextDay: "➡️ Siguiente Día",
+    completed: "✅ Completado",
+    inProgress: "🔓 En progreso",
+    mentor: "MENTOR SENIOR",
+    checkTheory: "📖 Teoría leída",
+    checkCode: "💻 Ejercicio intentado",
+    checkQuiz: "📝 Quiz completado",
+    todayProgress: "Progreso Hoy",
+    allDays: "Todos los Días",
+    lastQuiz: "Último Quiz",
+    pdfTitle: "📄 Exportar Reporte de Progreso",
+    pdfSub: "Genera un PDF con tu progreso, puntajes y ejercicios completados.",
+    pdfBtn: "⬇️ Generar PDF",
+    cancel: "Cancelar",
+    hdrProgress: "días completados",
+    feedbackPerfect: "¡Perfecto! 🏆 Dominas completamente este tema. Estás listo para avanzar. ¡Excelente claridad conceptual!",
+    feedback80: (s) => `¡Excelente trabajo! (${s}%). Tienes una base sólida. Revisa las preguntas incorrectas — solo 10 minutos reforzarán esos puntos débiles.`,
+    feedback60: (s) => `Buen intento (${s}%). Algunos conceptos necesitan refuerzo. Relee la teoría y ejecuta los ejemplos en tu IDE antes de continuar. ¿Qué concepto te confundió más?`,
+    feedbackLow: (s) => `(${s}%) No te desanimes — esto es completamente normal. Este tema necesita más práctica. Vamos a repasar: lee la teoría con calma, ejecuta cada ejemplo, y vuelve a intentar el quiz.`,
+    feedbackCode: "¡He registrado tu solución! Compárala con la oficial — no tiene que ser idéntica, solo funcionalmente correcta. Si hay diferencias, analiza por qué la solución usa ese enfoque específico. ¿Tu versión maneja casos edge como cero o valores negativos?",
+  },
+  pt: {
+    subtitle: "Seu Mentor Sênior de Modding",
+    start: "🚀 Começar",
+    nameHolder: "Seu nome…",
+    savedLocal: "Progresso salvo no seu navegador",
+    theory: "📖 Teoria", examples: "💻 Exemplos", exercise: "🏋️ Exercício", quiz: "📝 Quiz",
+    dayTag: "SEMANA", dayOf: "Dia",
+    understood: "✅ Entendido → Ver Exemplos",
+    toPractice: "🏋️ Vamos praticar!",
+    exercise: "📝 EXERCÍCIO",
+    hint: "💡 Dica",
+    submit: "📤 Enviar Solução",
+    showSol: "👁️ Ver Solução",
+    hideSol: "🙈 Ocultar",
+    solWarn: "⚠️ SOLUÇÃO OFICIAL (tente resolver sozinho primeiro!)",
+    quizIntro: "Responda sem consultar anotações. 70%+ = pode avançar. O mentor ajustará o plano.",
+    evaluate: "📊 Avaliar",
+    nextDay: "➡️ Próximo Dia",
+    completed: "✅ Concluído",
+    inProgress: "🔓 Em progresso",
+    mentor: "MENTOR SÊNIOR",
+    checkTheory: "📖 Teoria lida",
+    checkCode: "💻 Exercício tentado",
+    checkQuiz: "📝 Quiz feito",
+    todayProgress: "Progresso Hoje",
+    allDays: "Todos os Dias",
+    lastQuiz: "Último Quiz",
+    pdfTitle: "📄 Exportar Relatório de Progresso",
+    pdfSub: "Gere um PDF com seu progresso, pontuações e exercícios concluídos.",
+    pdfBtn: "⬇️ Gerar PDF",
+    cancel: "Cancelar",
+    hdrProgress: "dias concluídos",
+    feedbackPerfect: "Perfeito! 🏆 Você dominou completamente este tópico. Está pronto para avançar!",
+    feedback80: (s) => `Ótimo trabalho! (${s}%). Base sólida. Revise as questões erradas antes de avançar.`,
+    feedback60: (s) => `Boa tentativa (${s}%). Alguns conceitos precisam de reforço. Releia a teoria e rode os exemplos.`,
+    feedbackLow: (s) => `(${s}%) Não desanime — isso é completamente normal! Este tópico precisa de mais prática.`,
+    feedbackCode: "Registrei sua solução! Compare com a oficial — não precisa ser idêntica, apenas funcionalmente correta.",
+  },
+  fr: {
+    subtitle: "Votre Mentor Senior en Modding",
+    start: "🚀 Commencer",
+    nameHolder: "Votre nom…",
+    savedLocal: "Progression sauvegardée dans votre navigateur",
+    theory: "📖 Théorie", examples: "💻 Exemples", exercise: "🏋️ Exercice", quiz: "📝 Quiz",
+    dayTag: "SEMAINE", dayOf: "Jour",
+    understood: "✅ Compris → Voir Exemples",
+    toPractice: "🏋️ À pratiquer !",
+    exercise: "📝 EXERCICE",
+    hint: "💡 Indice",
+    submit: "📤 Soumettre",
+    showSol: "👁️ Voir Solution",
+    hideSol: "🙈 Masquer",
+    solWarn: "⚠️ SOLUTION OFFICIELLE (essayez d'abord seul !)",
+    quizIntro: "Répondez sans notes. 70%+ = vous pouvez avancer. Le mentor ajustera le plan.",
+    evaluate: "📊 Évaluer",
+    nextDay: "➡️ Jour Suivant",
+    completed: "✅ Terminé",
+    inProgress: "🔓 En cours",
+    mentor: "MENTOR SENIOR",
+    checkTheory: "📖 Théorie lue",
+    checkCode: "💻 Exercice tenté",
+    checkQuiz: "📝 Quiz fait",
+    todayProgress: "Progrès Aujourd'hui",
+    allDays: "Tous les Jours",
+    lastQuiz: "Dernier Quiz",
+    pdfTitle: "📄 Exporter le Rapport",
+    pdfSub: "Générez un PDF avec votre progression et vos scores.",
+    pdfBtn: "⬇️ Générer PDF",
+    cancel: "Annuler",
+    hdrProgress: "jours terminés",
+    feedbackPerfect: "Parfait ! 🏆 Vous maîtrisez complètement ce sujet. Prêt à avancer !",
+    feedback80: (s) => `Excellent travail ! (${s}%). Bonne base. Révisez vos erreurs avant d'avancer.`,
+    feedback60: (s) => `Bonne tentative (${s}%). Certains concepts ont besoin de renforcement.`,
+    feedbackLow: (s) => `(${s}%) Ne vous découragez pas — c'est tout à fait normal ! Relisez la théorie.`,
+    feedbackCode: "J'ai enregistré votre solution ! Comparez-la avec l'officielle.",
+  }
+};
+
+// ===================== CURRICULUM =====================
+const curriculum = {
+  en: [
+    { week: 1, theme: "🏗️ Foundations", days: [
+      { day:1, title:"Intro to Lua & Setup", obj:"Understand what Lua is and why it's used in games",
+        theory:`Lua is a lightweight scripting language created in Brazil in 1993. It is the most popular modding language in games like Roblox, Garry's Mod, World of Warcraft and Factorio. Its clean syntax and speed make it ideal for extending game engines without recompiling source code.\n\n<strong>How does it work in modding?</strong>\nThe game engine exposes C++ functions (like MoveCharacter, SpawnEnemy), and you call them from Lua. It's like a bridge between you and the engine.\n\n<strong>Recommended Setup:</strong>\n- ZeroBrane Studio (free Lua IDE)\n- Replit.com with Lua template\n- For Roblox: use Roblox Studio directly\n\n<div class="note">⚡ Pro tip: Even if you target a specific game, learning core Lua first means your knowledge transfers to every Lua-powered engine.</div>`,
+        examples:[{title:"Your First Modding Script", code:`-- In Lua, comments use two dashes
+-- This would be a basic script in a game mod
+
+-- Print to console (basic debugging)
+print("Mod loaded successfully!")
+
+-- In Roblox it would be:
+-- print("Server started:", workspace.Name)
+
+-- In Garry's Mod:
+-- print("My addon is active")`, note:"print() is your best friend when debugging mods. It always shows in the game console."}],
+        exercises:[{q:"Write a script that prints your mod name and version. Use comments to document it.",hint:"Use print() and -- for comments",sol:`-- My first mod
+-- Version: 1.0
+print("AwesomeMod v1.0 loaded")
+print("Author: YourName")`}],
+        quiz:[
+          {q:"In what year was Lua created?", opts:["1990","1993","1995","2000"], c:1},
+          {q:"Which game does NOT primarily use Lua for modding?", opts:["Roblox","Garry's Mod","Minecraft","Factorio"], c:2},
+          {q:"What does -- do in Lua?", opts:["Division","Line comment","Decrement","Negation"], c:1},
+          {q:"What does print() do in a mod?", opts:["Prints on player screen","Shows text in dev console","Creates an object","Saves data"], c:1},
+          {q:"Lua is primarily a:", opts:["Compiled language","Scripting/interpreted language","Markup language","Query language"], c:1}
+        ]
+      },
+      { day:2, title:"Variables & Data Types", obj:"Master the basic types you'll use in every mod",
+        theory:`Lua has 8 basic types. In modding you'll mainly use 5:\n\n<strong>nil</strong> — Absence of value. If a variable doesn't exist, it's nil.\n<strong>boolean</strong> — true or false. Game logic controllers.\n<strong>number</strong> — Lua doesn't distinguish between int and float. Everything is a number.\n<strong>string</strong> — Text. Item names, messages, identifiers.\n<strong>table</strong> — Lua's most powerful type. Arrays, dictionaries, objects.\n\n<strong>Variable Declaration:</strong>\nLocal variables are faster and safer. ALWAYS use local in your mods.\n\n<div class="note">⚠️ Critical difference: In Lua, 0 and "" are TRUE. Only nil and false are falsy — unlike JavaScript!</div>`,
+        examples:[{title:"Variables in a RPG Mod Context", code:`-- Variables for a character in an RPG mod
+local playerName = "Hero"           -- string
+local playerLevel = 1               -- number
+local playerHealth = 100.0          -- number (also float)
+local isAlive = true                -- boolean
+local inventory = nil               -- nil (empty at start)
+
+print("Player:", playerName)
+print("Level:", playerLevel)
+print("HP:", playerHealth)
+print("Alive?", isAlive)
+print("Inventory:", inventory)      -- prints: nil
+
+-- type() to identify types at runtime
+print(type(playerName))   -- string
+print(type(playerLevel))  -- number`, note:"Prefix every variable with 'local'. In large mods, globals can conflict with other mods or the engine itself."}],
+        exercises:[{q:"Create variables for a game item: name (string), damage (number), weight (decimal number), isLegendary (boolean), description (string). Print all with their types.",hint:"Use local for each variable and type() to show the type",sol:`local name = "Dragon Sword"
+local damage = 250
+local weight = 3.5
+local isLegendary = true
+local description = "Forged in the flames of the eternal volcano"
+
+print(name, type(name))
+print(damage, type(damage))
+print(weight, type(weight))
+print(isLegendary, type(isLegendary))
+print(description, type(description))`}],
+        quiz:[
+          {q:"How many basic types does Lua have?", opts:["5","6","8","10"], c:2},
+          {q:"What value does an undeclared variable have in Lua?", opts:["0","false","nil","undefined"], c:2},
+          {q:"Why use 'local' for variables in mods?", opts:["It's mandatory","Faster and avoids conflicts","Only works with strings","To declare constants"], c:1},
+          {q:"What does type(3.14) return?", opts:["float","integer","number","decimal"], c:2},
+          {q:"How do you correctly declare a local variable?", opts:["var x = 5","local x = 5","int x = 5","let x = 5"], c:1}
+        ]
+      },
+      { day:3, title:"Operators & Expressions", obj:"Calculate damage, XP, speed — the math of the game",
+        theory:`Operators are essential for any mod's logic.\n\n<strong>Arithmetic:</strong> + - * / % ^ //\n<strong>Relational:</strong> == ~= < > <= >=  (Note: NOT equal is ~= NOT !=)\n<strong>Logical:</strong> and or not\n<strong>Concatenation:</strong> .. (to join strings)\n<strong>Length:</strong> # (for tables and strings)\n\n<strong>Golden rule in mods:</strong> In Lua, 0 and "" are TRUE. Only nil and false are falsy.\n\n<div class="note">⚠️ The ~= operator catches many beginners off guard. There is NO != in Lua!</div>`,
+        examples:[{title:"Damage System for a Mod", code:`-- RPG-style damage calculation
+local baseAttack = 100
+local multiplier = 1.5
+local defense = 30
+local critBonus = 2.0
+local isCrit = true
+
+-- Damage calculation
+local rawDamage = baseAttack * multiplier
+local finalDamage = rawDamage - defense
+
+if isCrit then
+    finalDamage = finalDamage * critBonus
+end
+
+print("Raw damage: " .. rawDamage)     -- string concat with ..
+print("Final damage: " .. finalDamage)
+
+-- Modulo: for cycles (ammo reload)
+local ammo = 17
+local clipSize = 5
+local leftover = ammo % clipSize  -- bullets remaining after reload
+print("Leftover bullets:", leftover)  -- 2`, note:"Note .. for concatenation. It's different from + which is only for numbers."}],
+        exercises:[{q:"Create an XP system: player needs (level * 100) XP to level up. If they have >= required XP AND are alive, they level up. Print the result.",hint:"Use >=, and, and .. concatenation",sol:`local level = 3
+local currentXP = 350
+local isAlive = true
+local requiredXP = level * 100
+
+if currentXP >= requiredXP and isAlive then
+    level = level + 1
+    currentXP = currentXP - requiredXP
+    print("Leveled up to level " .. level .. "!")
+    print("Remaining XP: " .. currentXP)
+else
+    print("Need " .. (requiredXP - currentXP) .. " more XP")
+end`}],
+        quiz:[
+          {q:"How do you write 'not equal to' in Lua?", opts:["!=","<>","~=","=/="], c:2},
+          {q:"What does the .. operator do in Lua?", opts:["Decrements","Concatenates strings","Integer division","Exponentiation"], c:1},
+          {q:"In Lua, which value is FALSY?", opts:["0","\"\"","false","0.0"], c:2},
+          {q:"What does 17 % 5 return?", opts:["3","2","1","4"], c:1},
+          {q:"Which operator returns the length of a table or string?", opts:["len()","size","#","@"], c:2}
+        ]
+      },
+      { day:4, title:"Conditionals — Control Flow", obj:"Make decisions in your mod like the game engine does",
+        theory:`Conditionals are your mod's brain. Every game mechanic depends on them.\n\n<strong>Structure:</strong>\nif condition then ... elseif condition then ... else ... end\n\n<strong>Important:</strong> There is no switch/case in Lua. Use if/elseif chains or tables.\n<strong>Best practice:</strong> Avoid deep nesting (more than 3 levels = time to refactor).\n\n<div class="note">💡 Lua's if/elseif chain is extremely efficient — it's how the Roblox engine handles game state internally.</div>`,
+        examples:[{title:"Item Rarity System", code:`-- Rarity system like Diablo/Borderlands
+local function getRarity(itemValue)
+    local rarity
+    if itemValue >= 10000 then
+        rarity = "Legendary"
+    elseif itemValue >= 5000 then
+        rarity = "Epic"
+    elseif itemValue >= 2000 then
+        rarity = "Rare"
+    elseif itemValue >= 500 then
+        rarity = "Uncommon"
+    else
+        rarity = "Common"
+    end
+    return rarity
+end
+
+print(getRarity(15000))  -- Legendary
+print(getRarity(3000))   -- Rare
+print(getRarity(100))    -- Common`, note:"Note that 'end' closes the if block. Every control block in Lua ends with end."}],
+        exercises:[{q:"Create a character state system: HP > 70 = 'Healthy', HP > 30 = 'Injured', HP > 0 = 'Critical', HP <= 0 = 'Dead'. Also check if they have a shield (boolean) to modify the message.",hint:"Combine if/elseif/else and a second condition with if inside",sol:`local hp = 25
+local hasShield = true
+
+local state
+if hp > 70 then
+    state = "Healthy"
+elseif hp > 30 then
+    state = "Injured"
+elseif hp > 0 then
+    state = "Critical"
+else
+    state = "Dead"
+end
+
+local msg = "State: " .. state .. " | HP: " .. hp
+if hasShield and hp > 0 then
+    msg = msg .. " | 🛡️ Shield active"
+end
+print(msg)`}],
+        quiz:[
+          {q:"What keyword closes an if block in Lua?", opts:["endif","}","end","fi"], c:2},
+          {q:"What is the keyword for an alternative condition in Lua?", opts:["elif","else if","elseif","elsif"], c:2},
+          {q:"Does Lua have a native switch/case statement?", opts:["Yes","No","Only in recent versions","Only as a library"], c:1},
+          {q:"What happens if the if condition is 0?", opts:["Error","else block runs","if block runs","Skipped"], c:2},
+          {q:"How many 'end' needed: if a then if b then print() end?", opts:["0","1","2","3"], c:1}
+        ]
+      },
+      { day:5, title:"Loops — Repetition & Automation", obj:"Automate repetitive mechanics in your mods",
+        theory:`Loops are essential for: generating maps, processing inventories, updating multiple entities.\n\n<strong>while</strong> — Repeats while condition is true\n<strong>repeat...until</strong> — Executes at least once, stops when condition is true\n<strong>numeric for</strong> — for i = start, end, step do ... end\n<strong>generic for</strong> — for k, v in pairs(table) do ... end\n<strong>break</strong> — Exits the loop immediately\n\n<div class="note">⚠️ Infinite loops crash the game. Always have an exit condition. In Roblox, use wait() inside loops to prevent freezing.</div>`,
+        examples:[{title:"Enemy Wave Generator", code:`-- Wave system like Tower Defense
+local maxWaves = 5
+
+-- Numeric for: iterate waves
+for wave = 1, maxWaves do
+    local enemies = wave * 3
+    print("Wave " .. wave .. ": " .. enemies .. " enemies")
+end
+
+-- while: wait for player ready
+local playerReady = false
+local attempts = 0
+while not playerReady do
+    attempts = attempts + 1
+    print("Waiting... attempt " .. attempts)
+    if attempts >= 3 then
+        playerReady = true
+    end
+end
+
+-- for with step: countdown timer
+print("\nCountdown:")
+for t = 10, 0, -1 do
+    io.write(t .. " ")
+end
+print()`, note:"The numeric for with a negative step is perfect for countdowns and shrinking health bars."}],
+        exercises:[{q:"Create a spawn system: 3 waves. Wave 1: 2 normal enemies. Wave 2: 3 normal + 1 elite. Wave 3: 5 normal + 2 elites + 1 boss. Use for and variables.",hint:"Use a for from 1 to 3 and conditions inside for each wave",sol:`for wave = 1, 3 do
+    local normals = wave * 2
+    local elites = 0
+    local boss = 0
+    
+    if wave >= 2 then elites = wave - 1 end
+    if wave == 3 then boss = 1 end
+    
+    print("=== Wave " .. wave .. " ===")
+    print("  Normals: " .. normals)
+    if elites > 0 then print("  Elites: " .. elites) end
+    if boss > 0 then print("  BOSS: " .. boss) end
+    print("  Total: " .. (normals + elites + boss))
+end`}],
+        quiz:[
+          {q:"Which loop guarantees it runs at least once?", opts:["while","for","repeat...until","loop"], c:2},
+          {q:"How to write a for loop from 10 to 1?", opts:["for i=10 to 1","for i=10,1,-1 do","for i=10 downto 1","for i=10,1 do"], c:1},
+          {q:"What keyword exits a loop immediately?", opts:["exit","return","break","stop"], c:2},
+          {q:"Which loop would you use to iterate all connected players?", opts:["while","numeric for","generic for with pairs()","repeat"], c:2},
+          {q:"How many times does: for i=1,5 do ... end run?", opts:["4","5","6","Error"], c:1}
+        ]
+      }
+    ]},
+    { week: 2, theme: "⚙️ Functions & Tables", days: [
+      { day:6, title:"Functions — Modularity", obj:"Create reusable systems for your mod",
+        theory:`Functions are the unit of organization in Lua. In modding, each system (combat, inventory, UI) should be encapsulated in functions.\n\n<strong>Unique Lua features:</strong>\n- Multiple return values (no tuples needed!)\n- Functions as values (first-class)\n- Native closures\n- Variadic arguments with ...\n\n<div class="note">💡 In Roblox and Garry's Mod, entire game systems are built as Lua modules — mastering functions is the gateway to professional modding.</div>`,
+        examples:[{title:"Modular Combat System", code:`-- Multiple returns: very useful in mods
+local function calculateCombat(attacker, defender)
+    local baseDamage = attacker.attack - defender.defense
+    local isCrit = baseDamage > 50
+    local finalDamage = isCrit and baseDamage * 2 or math.max(1, baseDamage)
+    return finalDamage, isCrit  -- returns TWO values
+end
+
+local warrior = {attack=80, defense=20, name="Thor"}
+local goblin  = {attack=30, defense=10, name="Goblin"}
+
+local dmg, crit = calculateCombat(warrior, goblin)
+print(warrior.name .. " attacks " .. goblin.name)
+print("Damage: " .. dmg .. (crit and " (CRITICAL!)" or ""))
+
+-- Variadic args: log system
+local function logMod(level, ...)
+    local prefixes = {INFO="ℹ️", WARN="⚠️", ERROR="❌"}
+    io.write((prefixes[level] or "?") .. " ")
+    print(...)
+end
+
+logMod("INFO", "Mod loaded", "v2.0")
+logMod("WARN", "Resource not found:", "texture.png")
+logMod("ERROR", "Critical failure in save system")`, note:"Multiple returns avoid creating temporary tables just to return several values."}],
+        exercises:[{q:"Create 3 functions for a crafting system: calcCost(item, qty) returns total and whether affordable (bool). showRecipe(name, ...) accepts variadic args. applyDiscount(price, pct) returns final price and savings.",hint:"Use multiple returns and ... for variadic args",sol:`local gold = 500
+
+local function calcCost(unitPrice, qty)
+    local total = unitPrice * qty
+    return total, gold >= total
+end
+
+local function showRecipe(name, ...)
+    print("=== Recipe: " .. name .. " ===")
+    for i, ingredient in ipairs({...}) do
+        print("  " .. i .. ". " .. ingredient)
+    end
+end
+
+local function applyDiscount(price, pct)
+    local savings = price * (pct / 100)
+    return price - savings, savings
+end
+
+local cost, canAfford = calcCost(50, 8)
+print("Cost: " .. cost .. " | Can afford: " .. tostring(canAfford))
+showRecipe("Magic Sword", "3x Iron", "1x Crystal", "2x Wood")
+local final, saved = applyDiscount(300, 20)
+print("Price: " .. final .. " | Saved: " .. saved)`}],
+        quiz:[
+          {q:"How many values can a Lua function return?", opts:["Only 1","Max 2","Max 5","Unlimited"], c:3},
+          {q:"What does ... represent in a Lua function?", opts:["Concatenation","Variadic arguments","Range","Comment"], c:1},
+          {q:"If a function returns 3 values but you capture 2, what happens to the 3rd?", opts:["Error","Discarded","Stored in nil","Infinite loop"], c:1},
+          {q:"What is an anonymous function in Lua?", opts:["lambda","arrow function","function() end","fn()"], c:2},
+          {q:"What is a closure in Lua?", opts:["A type of table","A function that accesses variables from its outer scope","A closed loop","A module"], c:1}
+        ]
+      },
+      { day:7, title:"Tables — The Universal Type", obj:"Master Lua's most powerful type",
+        theory:`Tables are EVERYTHING in Lua: arrays, dictionaries, objects, namespaces, modules.\n\n<strong>As array:</strong> use numeric indices (start at 1, not 0!)\n<strong>As dictionary:</strong> use any type as key\n<strong>As object:</strong> store functions as values\n\nTables are the foundation of inventory systems, item databases, mod configs, and more.\n\n<div class="note">⚠️ Arrays in Lua start at index 1! This is the #1 gotcha for developers coming from other languages. Roblox's Children array starts at [1].</div>`,
+        examples:[{title:"Complete Inventory System", code:`-- Table as array (inventory)
+local inventory = {"Sword", "Potion", "Shield", "Bow"}
+
+print("Items:", #inventory)
+print("First item:", inventory[1])  -- Index 1, not 0!
+
+table.insert(inventory, "Torch")       -- add to end
+table.insert(inventory, 2, "Dagger")   -- insert at position 2
+table.remove(inventory, 3)             -- remove position 3
+
+print("\nUpdated inventory:")
+for i, item in ipairs(inventory) do
+    print(i .. ". " .. item)
+end
+
+-- Table as dictionary (character stats)
+local character = {
+    name = "Aria",
+    class = "Mage",
+    level = 15,
+    stats = {          -- nested table
+        hp = 300, mana = 500, speed = 8.5
+    },
+    skills = {"Fireball", "Arcane Shield", "Teleport"}
+}
+
+print("\n" .. character.name .. " | Class: " .. character.class)
+print("HP:", character.stats.hp)
+print("Skills:", #character.skills)`, note:"Nested tables allow complex structures like skill trees, tile maps, and entity databases."}],
+        exercises:[{q:"Create a shop table: 5 items with name, price, and stock. Iterate with pairs() to show the catalog. Implement buy(shop, itemName, qty) that reduces stock and returns true/false.",hint:"Use a table of tables and ipairs(). Remember to check sufficient stock",sol:`local shop = {
+    {name="HP Potion", price=50, stock=10},
+    {name="MP Potion", price=75, stock=5},
+    {name="Antidote",  price=30, stock=20},
+    {name="Bomb",      price=200, stock=3},
+    {name="Rope",      price=15, stock=50}
+}
+
+local function showShop(s)
+    print("=== SHOP ===")
+    for i, item in ipairs(s) do
+        print(i..". "..item.name.." | "..item.price.."g | Stock: "..item.stock)
+    end
+end
+
+local function buy(s, name, qty)
+    for _, item in ipairs(s) do
+        if item.name == name then
+            if item.stock >= qty then
+                item.stock = item.stock - qty
+                print("✅ Bought: "..qty.."x "..name)
+                return true
+            else
+                print("❌ Insufficient stock ("..item.stock.." available)")
+                return false
+            end
+        end
+    end
+    print("❌ Item not found: "..name)
+    return false
+end
+
+showShop(shop)
+buy(shop, "HP Potion", 3)
+buy(shop, "Bomb", 5)
+showShop(shop)`}],
+        quiz:[
+          {q:"At which index do Lua arrays start?", opts:["0","1","-1","Configurable"], c:1},
+          {q:"Which function adds an element to the end of a table?", opts:["table.push()","table.add()","table.insert()","table.append()"], c:2},
+          {q:"Which iterator do you use for numeric-index tables?", opts:["pairs()","ipairs()","each()","iter()"], c:1},
+          {q:"How do you access a nested table: t.stats.hp?", opts:["t[stats][hp]","t.stats.hp","t->stats->hp","t:stats:hp"], c:1},
+          {q:"What does #table return for a pure dictionary?", opts:["Number of keys","0","nil","Error"], c:1}
+        ]
+      },
+      { day:8, title:"OOP with Metatables", obj:"Create entity systems for your game",
+        theory:`Lua has no native classes, but metatables allow full OOP simulation. This technique is used internally by Roblox, Garry's Mod and many others.\n\n<strong>Metatable:</strong> A table that defines the behavior of another table.\n<strong>__index:</strong> The most important metamethod. Enables inheritance.\n<strong>Colon syntax :</strong> Automatically passes self (like 'this' in JS).\n\n<div class="note">💡 Every Roblox Instance (Part, Model, Player) is implemented using metatables under the hood. Understanding this unlocks deep engine knowledge.</div>`,
+        examples:[{title:"Enemy Class", code:`-- Base class: Enemy
+local Enemy = {}
+Enemy.__index = Enemy
+
+function Enemy.new(name, hp, dmg)
+    local self = setmetatable({}, Enemy)
+    self.name = name
+    self.hp = hp
+    self.attackDmg = dmg
+    self.isAlive = true
+    return self
+end
+
+function Enemy:takeDamage(amount)
+    self.hp = self.hp - amount
+    if self.hp <= 0 then
+        self.hp = 0
+        self.isAlive = false
+        print(self.name .. " defeated!")
+    else
+        print(self.name.." takes "..amount.." dmg | HP: "..self.hp)
+    end
+end
+
+function Enemy:attack(target)
+    print(self.name.." attacks "..target.name.." for "..self.attackDmg)
+    target:takeDamage(self.attackDmg)
+end
+
+local goblin   = Enemy.new("Goblin Boss", 150, 25)
+local skeleton = Enemy.new("Skeleton",    80,  15)
+
+goblin:attack(skeleton)
+skeleton:attack(goblin)
+goblin:takeDamage(200)`, note:"The : notation in methods automatically passes 'self' as the first argument."}],
+        exercises:[{q:"Implement a 'Weapon' class with: name, damage, durability (starts 100). Methods: use() reduces durability by 10 and returns damage (0 if broken), repair(amount) restores durability max 100. Create 2 weapons and use one until it breaks.",hint:"Use setmetatable and __index. use() must check durability > 0",sol:`local Weapon = {}
+Weapon.__index = Weapon
+
+function Weapon.new(name, dmg)
+    local self = setmetatable({}, Weapon)
+    self.name = name; self.damage = dmg; self.durability = 100
+    return self
+end
+
+function Weapon:use()
+    if self.durability <= 0 then
+        print(self.name .. " is broken!")
+        return 0
+    end
+    self.durability = self.durability - 10
+    print(self.name.." used | Durability: "..self.durability)
+    return self.damage
+end
+
+function Weapon:repair(amount)
+    local before = self.durability
+    self.durability = math.min(100, self.durability + amount)
+    print(self.name.." repaired: "..before.." -> "..self.durability)
+end
+
+local sword = Weapon.new("Rusty Sword", 40)
+local dagger = Weapon.new("Elven Dagger", 25)
+
+for i = 1, 11 do sword:use() end
+dagger:use()
+sword:repair(50)
+sword:use()`}],
+        quiz:[
+          {q:"Which function applies a metatable to a table?", opts:["applyMeta()","setmetatable()","addMeta()","meta()"], c:1},
+          {q:"Which metamethod enables inheritance in Lua?", opts:["__new","__init","__index","__proto"], c:2},
+          {q:"What's the difference between obj.method() and obj:method()?", opts:["None",": passes self automatically",". is for inheritance",": is slower"], c:1},
+          {q:"What does setmetatable({}, BaseClass) do?", opts:["Copies BaseClass","Creates table inheriting from BaseClass","Merges two tables","Syntax error"], c:1},
+          {q:"In Lua OOP, what is 'self'?", opts:["A reserved keyword","The current object instance","The parent class","A global module"], c:1}
+        ]
+      }
+    ]},
+    { week: 3, theme: "🏛️ Modules & Architecture", days: [
+      { day:9, title:"Modules & require()", obj:"Structure your mod like a professional",
+        theory:`As mods grow, you need to split code into files (modules). Lua's module system is simple but powerful.\n\n<strong>require()</strong> — Loads a module file and caches it\n<strong>Module pattern:</strong> Return a table of functions\n<strong>Package path:</strong> Lua searches specific directories\n\n<div class="note">💡 Every professional Roblox game uses ModuleScripts. Garry's Mod uses include() which works similarly. This is THE skill that separates hobby modders from serious ones.</div>`,
+        examples:[{title:"Mod Module Structure", code:`-- File: combat.lua
+local Combat = {}
+
+function Combat.calculateDamage(attack, defense)
+    return math.max(1, attack - defense)
+end
+
+function Combat.applyDamage(entity, amount)
+    entity.hp = entity.hp - amount
+    return entity.hp > 0
+end
+
+return Combat  -- MUST return the module table
+
+-- File: main.lua
+local Combat = require("combat")  -- load module
+
+local player = {hp = 100, attack = 50}
+local enemy  = {hp = 80,  defense = 15}
+
+local dmg = Combat.calculateDamage(player.attack, enemy.defense)
+local alive = Combat.applyDamage(enemy, dmg)
+print("Enemy alive:", alive)`, note:"require() caches modules — calling it twice returns the same table. This is both a feature and something to be aware of in hot-reloading scenarios."}],
+        exercises:[{q:"Create a 'utils' module with 3 utility functions: clamp(val, min, max) — keeps value in range. lerp(a, b, t) — linear interpolation. round(n, decimals) — rounds to n decimals. Test all three from a main script.",hint:"Return a table with all functions. Use math.min/max for clamp",sol:`-- utils.lua
+local Utils = {}
+
+function Utils.clamp(val, min, max)
+    return math.max(min, math.min(max, val))
+end
+
+function Utils.lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+function Utils.round(n, decimals)
+    local mult = 10 ^ (decimals or 0)
+    return math.floor(n * mult + 0.5) / mult
+end
+
+return Utils
+
+-- main.lua
+local Utils = require("utils")
+print(Utils.clamp(150, 0, 100))  -- 100
+print(Utils.lerp(0, 100, 0.25)) -- 25.0
+print(Utils.round(3.14159, 2))   -- 3.14`}],
+        quiz:[
+          {q:"What does require() do when called twice with the same module?", opts:["Loads it twice","Returns cached result","Error","Creates a copy"], c:1},
+          {q:"What must a Lua module file end with?", opts:["module.end","export default","return (table)","Nothing"], c:2},
+          {q:"In Roblox, modules are implemented as:", opts:["LocalScripts","ModuleScripts","ServerScripts","Plugins"], c:1},
+          {q:"What is the purpose of splitting code into modules?", opts:["Runs faster","Organization and reusability","Mandatory in Lua","Enables OOP"], c:1},
+          {q:"Can two modules require each other?", opts:["Yes always","No, causes error","Yes but risks circular dependency","Only in Roblox"], c:2}
+        ]
+      },
+      { day:10, title:"Error Handling & Debugging", obj:"Make your mods robust and easy to debug",
+        theory:`Mods crash. Knowing how to handle errors gracefully is what separates amateur and professional modders.\n\n<strong>pcall()</strong> — Protected call. Catches errors without crashing.\n<strong>xpcall()</strong> — Like pcall but with custom error handler.\n<strong>error()</strong> — Manually throw an error.\n<strong>assert()</strong> — Throw error if condition is false.\n<strong>tostring() on errors</strong> — Get the error message as string.\n\n<div class="note">💡 In Roblox, uncaught errors in LocalScripts cause silent failures. pcall() around network calls is MANDATORY in production mods.</div>`,
+        examples:[{title:"Robust Mod Error Handling", code:`-- pcall: catch errors without crashing
+local function riskyOperation(data)
+    if type(data) ~= "table" then
+        error("Expected table, got " .. type(data))
+    end
+    return data.value * 2
+end
+
+-- Without pcall: crashes if data is wrong
+-- With pcall: safe execution
+local ok, result = pcall(riskyOperation, {value = 42})
+if ok then
+    print("Result:", result)  -- 84
+else
+    print("Error:", result)
+end
+
+-- Test with bad input
+local ok2, err2 = pcall(riskyOperation, "not a table")
+print("Success:", ok2)   -- false
+print("Error:", err2)    -- Expected table, got string
+
+-- assert: validate mod configuration
+local function loadConfig(cfg)
+    assert(type(cfg) == "table", "Config must be a table")
+    assert(cfg.version, "Config missing version field")
+    assert(cfg.version >= 1, "Config version must be >= 1")
+    return true
+end`, note:"Use pcall for any operation that might fail: file reads, network calls, user input processing."}],
+        exercises:[{q:"Create a safe inventory system: addItem(inv, item) must validate that inv is a table and item is a string. removeItem(inv, item) must handle item-not-found gracefully. Wrap both in pcall. Test with invalid inputs.",hint:"Use assert() inside functions and pcall() when calling them",sol:`local function addItem(inv, item)
+    assert(type(inv) == "table", "Inventory must be a table")
+    assert(type(item) == "string" and #item > 0, "Item must be non-empty string")
+    table.insert(inv, item)
+    return true
+end
+
+local function removeItem(inv, item)
+    assert(type(inv) == "table", "Inventory must be a table")
+    for i, v in ipairs(inv) do
+        if v == item then
+            table.remove(inv, i)
+            return true
+        end
+    end
+    error("Item not found: " .. tostring(item))
+end
+
+local myInv = {}
+local ok, err
+
+ok, err = pcall(addItem, myInv, "Sword")
+print("Add Sword:", ok, err)
+
+ok, err = pcall(addItem, myInv, 42)  -- invalid
+print("Add 42:", ok, err)
+
+ok, err = pcall(removeItem, myInv, "Shield")  -- not found
+print("Remove Shield:", ok, err)`}],
+        quiz:[
+          {q:"What does pcall() return when the function succeeds?", opts:["true, result","false, result","result only","nil"], c:0},
+          {q:"What does assert(false, 'msg') do?", opts:["Prints msg","Throws error with msg","Returns false","Does nothing"], c:1},
+          {q:"When should you use pcall in a mod?", opts:["Never","Always","Around risky operations","Only for network calls"], c:2},
+          {q:"What's the difference between pcall and xpcall?", opts:["No difference","xpcall has custom error handler","xpcall is faster","pcall is deprecated"], c:1},
+          {q:"error() in Lua:", opts:["Prints to console","Throws an exception","Stops the script silently","Is the same as print"], c:1}
+        ]
+      }
+    ]}
+  ],
+  es: null, pt: null, fr: null
+};
+
+// Copy EN curriculum and translate key UI strings for other langs
+// (In production you'd have full translations; here we use EN content with translated UI)
+curriculum.es = curriculum.en;
+curriculum.pt = curriculum.en;
+curriculum.fr = curriculum.en;
+
+// ===================== STATE =====================
+let state = {
+  lang: "en", name: "", currentDay: 0,
+  activeTab: "theory", quizAnswers: {}, quizSubmitted: false,
+  showSolution: false, codeAnswer: "", mentorVisible: false, mentorMsg: "",
+  progress: {}
+};
+
+function t(key, ...args) {
+  const tr = T[state.lang] || T.en;
+  const val = tr[key];
+  return typeof val === "function" ? val(...args) : (val || T.en[key] || key);
+}
+
+function getDays() {
+  const days = [];
+  const weeks = curriculum[state.lang] || curriculum.en;
+  weeks.forEach((w, wi) => w.days.forEach((d, di) => days.push({week: wi, day: di, wData: w, dData: d})));
+  return days;
+}
+
+function getDayKey(wi, di) { return `w${wi}_d${di}`; }
+function getProgress(wi, di) { return state.progress[getDayKey(wi, di)] || {}; }
+function totalCompleted() { return Object.values(state.progress).filter(p => p.completed).length; }
+
+function saveState() {
+  try { localStorage.setItem("luaMentor_v2", JSON.stringify({progress: state.progress, lang: state.lang, name: state.name, currentDay: state.currentDay})); } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem("luaMentor_v2") || "{}");
+    if (s.progress) state.progress = s.progress;
+    if (s.lang) state.lang = s.lang;
+    if (s.name) state.name = s.name;
+    if (s.currentDay != null) state.currentDay = s.currentDay;
+  } catch(e) {}
+}
+
+// ===================== ONBOARDING =====================
+let selectedLang = "";
+function selectLang(btn) {
+  document.querySelectorAll(".lang-btn").forEach(b => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  selectedLang = btn.dataset.lang;
+  checkStartReady();
+}
+document.getElementById("name-input").addEventListener("input", checkStartReady);
+function checkStartReady() {
+  const name = document.getElementById("name-input").value.trim();
+  document.getElementById("start-btn").disabled = !selectedLang || name.length < 2;
+}
+function startApp() {
+  state.lang = selectedLang;
+  state.name = document.getElementById("name-input").value.trim();
+  document.getElementById("onboarding").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  document.getElementById("lang-switch").value = state.lang;
+  initApp();
+  saveState();
+}
+
+// ===================== LANG SWITCH =====================
+function switchLang(lang) {
+  state.lang = lang;
+  saveState();
+  renderAll();
+}
+
+// ===================== INIT =====================
+function initApp() {
+  const hdrName = document.getElementById("hdr-name");
+  hdrName.textContent = state.name;
+  const av = document.getElementById("hdr-avatar");
+  av.textContent = state.name.charAt(0).toUpperCase();
+  renderAll();
+}
+
+function renderAll() {
+  renderSidebar();
+  renderContent();
+  renderRightPanel();
+  updateHeader();
+}
+
+function updateHeader() {
+  const days = getDays();
+  const done = totalCompleted();
+  document.getElementById("hdr-progress-label").textContent = `${done} / ${days.length} ${t("hdrProgress")}`;
+  document.getElementById("hdr-bar").style.width = `${(done / days.length) * 100}%`;
+  document.getElementById("lang-switch").value = state.lang;
+}
+
+// ===================== SIDEBAR =====================
+function renderSidebar() {
+  const sb = document.getElementById("sidebar");
+  const weeks = curriculum[state.lang] || curriculum.en;
+  const days = getDays();
+  let html = "";
+  weeks.forEach((w, wi) => {
+    html += `<div class="week-label">${t("dayTag")} ${wi+1}: ${w.theme}</div>`;
+    w.days.forEach((d, di) => {
+      const dayIdx = days.findIndex(x => x.week === wi && x.day === di);
+      const dp = getProgress(wi, di);
+      const isActive = state.currentDay === dayIdx;
+      html += `<button class="day-btn${isActive?" active":""}${dp.completed?" done":""}" onclick="goDay(${dayIdx})">
+        <span>${t("dayOf")} ${d.day}: ${d.title}</span>
+        <span>${dp.completed?"✅":dp.quizScore!=null?"🔄":""}</span>
+      </button>`;
+    });
+  });
+  sb.innerHTML = html;
+}
+
+// ===================== CONTENT =====================
+function renderContent() {
+  const days = getDays();
+  if (!days[state.currentDay]) return;
+  const {week: wi, day: di, wData, dData} = days[state.currentDay];
+  const dp = getProgress(wi, di);
+
+  const statusColor = dp.completed ? "var(--accent3)" : "var(--accent2)";
+  const statusBg = dp.completed ? "rgba(16,185,129,.15)" : "rgba(124,58,237,.1)";
+
+  let html = `
+  <div class="day-header fade-in">
+    <div>
+      <div class="day-tag">${t("dayTag")} ${wi+1} • ${wData.theme} • ${t("dayOf")} ${dData.day}</div>
+      <div class="day-title">${dData.title}</div>
+      <div class="day-obj">🎯 ${dData.obj}</div>
+    </div>
+    <div class="status-badge" style="background:${statusBg};border:1px solid ${statusColor};color:${statusColor}">
+      ${dp.completed ? t("completed") : t("inProgress")}
+    </div>
+  </div>`;
+
+  // Mentor feedback
+  if (state.mentorVisible && state.mentorMsg) {
+    html += `<div class="mentor-feedback fade-in">
+      <div class="mentor-avatar">🧑‍💻</div>
+      <div>
+        <div class="mentor-name">${t("mentor")}</div>
+        <div class="mentor-msg">${state.mentorMsg}</div>
+      </div>
+    </div>`;
+  }
+
+  // Tabs
+  html += `<div class="tabs">
+    ${["theory","examples","exercise","quiz"].map(tab =>
+      `<button class="tab-btn${state.activeTab===tab?" active":""}" onclick="switchTab('${tab}')">${t(tab === "exercise" ? "exercise" : tab)}</button>`
+    ).join("")}
+  </div>`;
+
+  // Tab contents
+  html += `<div id="tab-theory" class="tab-content${state.activeTab==="theory"?" active":""}">` + renderTheory(dData) + `</div>`;
+  html += `<div id="tab-examples" class="tab-content${state.activeTab==="examples"?" active":""}">` + renderExamples(dData) + `</div>`;
+  html += `<div id="tab-exercise" class="tab-content${state.activeTab==="exercise"?" active":""}">` + renderExercise(dData, dp) + `</div>`;
+  html += `<div id="tab-quiz" class="tab-content${state.activeTab==="quiz"?" active":""}">` + renderQuiz(dData, dp, wi, di) + `</div>`;
+
+  document.getElementById("content").innerHTML = html;
+}
+
+function renderTheory(dData) {
+  const body = dData.theory.replace(/\n/g, "<br>").replace(/<strong>/g,"<strong>").replace(/<\/strong>/g,"</strong>").replace(/<div class="note">/g,'<div class="note">').replace(/<\/div>/g,"</div>");
+  return `<div class="theory-block">${body}</div>
+  <button class="btn-primary" onclick="markTheory()" style="max-width:300px">${t("understood")}</button>`;
+}
+
+function renderExamples(dData) {
+  let html = "";
+  dData.examples.forEach((ex, i) => {
+    html += `<h3 style="color:var(--accent);font-size:15px;margin-bottom:12px">💡 ${i+1}. ${ex.title}</h3>
+    <div class="code-block">
+      <div class="code-header"><span>${ex.title}.lua</span><span style="color:var(--accent3)">Lua</span></div>
+      <div class="code-body"><pre>${highlightLua(ex.code)}</pre></div>
+    </div>
+    <div class="mentor-note" style="margin-bottom:24px">💬 <strong>${t("mentor")}:</strong> ${ex.note}</div>`;
+  });
+  html += `<button class="btn-primary" onclick="switchTab('exercise')" style="max-width:280px">${t("toPractice")}</button>`;
+  return html;
+}
+
+function renderExercise(dData, dp) {
+  if (!dData.exercises || !dData.exercises.length) return "<p>No exercise for today.</p>";
+  const ex = dData.exercises[0];
+  const solVisible = state.showSolution;
+  return `
+  <div class="exercise-card">
+    <div class="exercise-label">${t("exercise")} 1</div>
+    <div class="exercise-q">${ex.q}</div>
+    <div class="hint-box">💡 <strong>${t("hint")}:</strong> ${ex.hint}</div>
+  </div>
+  <textarea class="code-textarea" id="code-ta" placeholder="-- Write your solution here\n-- ${dData.title}\n\n" oninput="state.codeAnswer=this.value">${escHtml(state.codeAnswer)}</textarea>
+  <div class="btn-row">
+    <button class="btn-submit" onclick="submitCode()">${t("submit")}</button>
+    <button class="btn-ghost" onclick="toggleSolution()">${solVisible ? t("hideSol") : t("showSol")}</button>
+  </div>
+  ${solVisible ? `<div class="solution-warn">${t("solWarn")}</div>
+  <div class="solution-box"><pre style="font-size:12px;color:#fcd34d;font-family:'Space Mono',monospace">${escHtml(ex.sol)}</pre></div>` : ""}`;
+}
+
+function renderQuiz(dData, dp, wi, di) {
+  const qs = dData.quiz;
+  const submitted = state.quizSubmitted;
+  let html = `<div class="quiz-intro">🧑‍💻 ${t("quizIntro")}</div>`;
+  qs.forEach((q, qi) => {
+    const userAns = state.quizAnswers[q.id || qi];
+    const isCorrect = userAns === q.c;
+    html += `<div class="quiz-q${submitted ? (isCorrect?" correct":" wrong") : ""}">
+      <div class="quiz-q-text"><span class="quiz-num">${qi+1}.</span>${q.q}</div>
+      <div class="quiz-opts">
+        ${q.opts.map((opt, oi) => {
+          let cls = "quiz-opt";
+          if (userAns === oi) cls += " selected";
+          if (submitted && oi === q.c) cls += " correct-ans";
+          if (submitted && userAns === oi && oi !== q.c) cls += " wrong-ans";
+          return `<button class="${cls}" ${submitted?"disabled":""} onclick="selectOpt(${qi},${oi})">
+            <span class="opt-letter">${["A","B","C","D"][oi]}.</span>${opt}
+          </button>`;
+        }).join("")}
+      </div>
+    </div>`;
+  });
+
+  if (!submitted) {
+    const answered = Object.keys(state.quizAnswers).length;
+    html += `<button class="btn-submit" onclick="submitQuiz(${wi},${di})" ${answered < qs.length ? "disabled" : ""}
+      style="opacity:${answered < qs.length ? 0.4 : 1}">
+      ${t("evaluate")} (${answered}/${qs.length})
+    </button>`;
+  } else {
+    const score = dp.quizScore || 0;
+    const color = score >= 70 ? "var(--accent3)" : "var(--danger)";
+    const bg = score >= 70 ? "rgba(16,185,129,.08)" : "rgba(239,68,68,.08)";
+    html += `<div class="quiz-result" style="background:${bg};border:2px solid ${color}">
+      <div class="quiz-score-big" style="color:${color}">${score}%</div>
+      <div style="color:var(--muted);margin-top:8px;font-size:14px">
+        ${score >= 70 ? "✅ " + t("completed") : "🔄 Review theory and retry"}
+      </div>
+      ${score >= 70 ? `<button class="btn-next" onclick="nextDay()">➡️ ${t("nextDay")}</button>` : ""}
+    </div>`;
+  }
+  return html;
+}
+
+function highlightLua(code) {
+  return escHtml(code)
+    .replace(/(--[^\n]*)/g, '<span class="c-comment">$1</span>')
+    .replace(/\b(local|function|end|if|then|elseif|else|for|while|do|repeat|until|return|and|or|not|in|break|nil|true|false)\b/g, '<span class="c-keyword">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="c-string">$1</span>')
+    .replace(/\b(\d+\.?\d*)\b/g, '<span class="c-number">$1</span>')
+    .replace(/\b(print|ipairs|pairs|type|tostring|tonumber|setmetatable|getmetatable|require|pcall|xpcall|error|assert|math|table|string|io)\b/g, '<span class="c-builtin">$1</span>');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// ===================== RIGHT PANEL =====================
+function renderRightPanel() {
+  const days = getDays();
+  const {week: wi, day: di} = days[state.currentDay];
+  const dp = getProgress(wi, di);
+  const checks = [
+    {label: t("checkTheory"), key: "theoryRead"},
+    {label: t("checkCode"), key: "codeAttempted"},
+    {label: t("checkQuiz"), key: "quizScore"}
+  ];
+  let html = `<div class="panel-label">${t("todayProgress")}</div>`;
+  checks.forEach(c => {
+    html += `<div class="check-item${dp[c.key] != null ? " done" : ""}">
+      <span>${c.label}</span><span>${dp[c.key] != null ? "✅" : "⭕"}</span>
+    </div>`;
+  });
+  if (dp.quizScore != null) {
+    const sc = dp.quizScore;
+    html += `<div class="score-display">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${t("lastQuiz")}</div>
+      <div class="score-num" style="color:${sc>=70?"var(--accent3)":"var(--warn)"}">${sc}%</div>
+    </div>`;
+  }
+  html += `<div class="panel-label" style="margin-top:8px">${t("allDays")}</div><div class="day-dots">`;
+  days.forEach((d, i) => {
+    const p = getProgress(d.week, d.day);
+    let bg = "var(--border)";
+    if (p.completed) bg = "var(--accent3)";
+    else if (i === state.currentDay) bg = "var(--accent2)";
+    html += `<div class="day-dot${p.completed?" done":""}${i===state.currentDay?" active":""}" onclick="goDay(${i})" style="background:${bg}" title="Day ${d.dData.day}: ${d.dData.title}">${d.dData.day}</div>`;
+  });
+  html += "</div>";
+  document.getElementById("right-panel").innerHTML = html;
+}
+
+// ===================== INTERACTIONS =====================
+function switchTab(tab) {
+  state.activeTab = tab;
+  state.mentorVisible = false;
+  renderContent();
+  renderRightPanel();
+}
+
+function goDay(idx) {
+  state.currentDay = idx;
+  state.activeTab = "theory";
+  state.quizAnswers = {};
+  state.quizSubmitted = false;
+  state.showSolution = false;
+  state.codeAnswer = "";
+  state.mentorVisible = false;
+  state.mentorMsg = "";
+  saveState();
+  renderAll();
+}
+
+function nextDay() {
+  const days = getDays();
+  if (state.currentDay < days.length - 1) goDay(state.currentDay + 1);
+}
+
+function markTheory() {
+  const days = getDays();
+  const {week: wi, day: di} = days[state.currentDay];
+  const key = getDayKey(wi, di);
+  state.progress[key] = {...(state.progress[key]||{}), theoryRead: true};
+  saveState();
+  switchTab("examples");
+}
+
+function selectOpt(qi, oi) {
+  state.quizAnswers[qi] = oi;
+  renderContent();
+}
+
+function submitQuiz(wi, di) {
+  const days = getDays();
+  const dData = days[state.currentDay].dData;
+  let correct = 0;
+  dData.quiz.forEach((q, i) => { if (state.quizAnswers[i] === q.c) correct++; });
+  const score = Math.round((correct / dData.quiz.length) * 100);
+  state.quizSubmitted = true;
+
+  let msg = "";
+  if (score === 100) msg = t("feedbackPerfect");
+  else if (score >= 80) msg = t("feedback80", score);
+  else if (score >= 60) msg = t("feedback60", score);
+  else msg = t("feedbackLow", score);
+
+  state.mentorMsg = msg;
+  state.mentorVisible = true;
+
+  const key = getDayKey(wi, di);
+  state.progress[key] = {
+    ...(state.progress[key] || {}),
+    quizScore: score, quizAnswers: state.quizAnswers,
+    completed: score >= 70, date: new Date().toLocaleDateString()
+  };
+  saveState();
+  renderAll();
+}
+
+function submitCode() {
+  const ta = document.getElementById("code-ta");
+  if (ta) state.codeAnswer = ta.value;
+  const days = getDays();
+  const {week: wi, day: di} = days[state.currentDay];
+  const key = getDayKey(wi, di);
+  state.progress[key] = {...(state.progress[key]||{}), codeAttempted: true, codeAnswer: state.codeAnswer};
+  state.mentorMsg = t("feedbackCode");
+  state.mentorVisible = true;
+  saveState();
+  renderAll();
+}
+
+function toggleSolution() {
+  state.showSolution = !state.showSolution;
+  renderContent();
+}
+
+// ===================== PDF EXPORT =====================
+function openPdfModal() {
+  document.getElementById("pdf-modal-title").textContent = t("pdfTitle");
+  document.getElementById("pdf-modal-sub").textContent = t("pdfSub");
+  document.getElementById("pdf-go-btn").textContent = t("pdfBtn");
+  document.getElementById("pdf-modal").classList.add("open");
+}
+function closePdfModal() {
+  document.getElementById("pdf-modal").classList.remove("open");
+}
+
+function generatePDF() {
+  const days = getDays();
+  const done = totalCompleted();
+  const pct = Math.round((done / days.length) * 100);
+
+  let content = `
+  <!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#1e293b}
+    h1{color:#7c3aed;border-bottom:3px solid #7c3aed;padding-bottom:10px}
+    h2{color:#0e7490;margin-top:28px}
+    .meta{background:#f1f5f9;padding:16px;border-radius:8px;margin:20px 0}
+    table{width:100%;border-collapse:collapse;margin:16px 0}
+    th{background:#7c3aed;color:white;padding:10px;text-align:left}
+    td{padding:9px 10px;border-bottom:1px solid #e2e8f0}
+    tr:nth-child(even){background:#f8fafc}
+    .score-good{color:#059669;font-weight:bold}
+    .score-bad{color:#dc2626;font-weight:bold}
+    .progress-bar{background:#e2e8f0;border-radius:99px;height:18px;margin:8px 0}
+    .progress-fill{background:linear-gradient(90deg,#7c3aed,#00d4ff);height:100%;border-radius:99px}
+    footer{margin-top:40px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:16px}
+    code{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:12px}
+  </style></head><body>
+  <h1>🎮 Lua Mentor — Progress Report</h1>
+  <div class="meta">
+    <strong>Student:</strong> ${escHtml(state.name)}<br>
+    <strong>Language:</strong> ${state.lang.toUpperCase()}<br>
+    <strong>Report Date:</strong> ${new Date().toLocaleDateString()}<br>
+    <strong>Overall Progress:</strong> ${done} / ${days.length} days (${pct}%)
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>
+  <h2>📊 Day-by-Day Progress</h2>
+  <table>
+    <tr><th>Day</th><th>Topic</th><th>Week</th><th>Quiz Score</th><th>Status</th><th>Date</th></tr>`;
+
+  days.forEach(d => {
+    const dp = getProgress(d.week, d.day);
+    const sc = dp.quizScore;
+    content += `<tr>
+      <td>${d.dData.day}</td>
+      <td>${d.dData.title}</td>
+      <td>${d.week + 1}</td>
+      <td class="${sc == null ? "" : sc >= 70 ? "score-good" : "score-bad"}">${sc != null ? sc + "%" : "—"}</td>
+      <td>${dp.completed ? "✅ Completed" : sc != null ? "🔄 In Progress" : "⭕ Pending"}</td>
+      <td>${dp.date || "—"}</td>
+    </tr>`;
+  });
+
+  content += `</table>`;
+
+  // Summary stats
+  const scores = Object.values(state.progress).filter(p => p.quizScore != null).map(p => p.quizScore);
+  if (scores.length > 0) {
+    const avg = Math.round(scores.reduce((a,b) => a+b, 0) / scores.length);
+    const best = Math.max(...scores);
+    const worst = Math.min(...scores);
+    content += `<h2>📈 Statistics</h2>
+    <div class="meta">
+      <strong>Average Quiz Score:</strong> <span class="${avg>=70?"score-good":"score-bad"}">${avg}%</span><br>
+      <strong>Best Score:</strong> <span class="score-good">${best}%</span><br>
+      <strong>Lowest Score:</strong> <span class="${worst>=70?"score-good":"score-bad"}">${worst}%</span><br>
+      <strong>Quizzes Completed:</strong> ${scores.length} / ${days.length}
+    </div>`;
+  }
+
+  // Exercises submitted
+  const submitted = Object.entries(state.progress).filter(([,p]) => p.codeAttempted);
+  if (submitted.length > 0) {
+    content += `<h2>💻 Submitted Code Exercises (${submitted.length})</h2>`;
+    submitted.forEach(([key, p]) => {
+      if (p.codeAnswer) {
+        content += `<div style="margin-bottom:16px"><strong>${key}:</strong><br><code style="display:block;white-space:pre-wrap;background:#f1f5f9;padding:12px;border-radius:6px;font-size:11px">${escHtml(p.codeAnswer)}</code></div>`;
+      }
+    });
+  }
+
+  content += `<h2>📋 Recommendations</h2><div class="meta">`;
+  if (pct >= 80) content += "🏆 Excellent progress! You are mastering Lua for game modding. Consider starting a real mod project.";
+  else if (pct >= 50) content += "⚡ Good pace. Keep consistent with 2 hours/day. Review days with scores below 70%.";
+  else content += "📚 Focus on completing one day at a time. Don't skip days — each concept builds on the previous one.";
+  content += `</div>
+  <footer>Generated by Lua Mentor • ${new Date().toISOString()} • Student: ${escHtml(state.name)}</footer>
+  </body></html>`;
+
+  const win = window.open("", "_blank");
+  win.document.write(content);
+  win.document.close();
+  setTimeout(() => win.print(), 800);
+  closePdfModal();
+}
+
+// ===================== BOOT =====================
+loadState();
+if (state.name && state.lang) {
+  document.getElementById("onboarding").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  document.getElementById("lang-switch").value = state.lang;
+  initApp();
+} else {
+  // Pre-select saved lang on onboarding
+  if (state.lang) {
+    const btn = document.querySelector(`[data-lang="${state.lang}"]`);
+    if (btn) selectLang(btn);
+  }
+}
+</script>
+</body>
+</html>
