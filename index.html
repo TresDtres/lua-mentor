@@ -1365,12 +1365,46 @@ function renderQuiz(dData, dp, wi, di) {
 }
 
 function highlightLua(code) {
-  return escHtml(code)
-    .replace(/(--[^\n]*)/g, '<span class="c-comment">$1</span>')
-    .replace(/\b(local|function|end|if|then|elseif|else|for|while|do|repeat|until|return|and|or|not|in|break|nil|true|false)\b/g, '<span class="c-keyword">$1</span>')
-    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="c-string">$1</span>')
-    .replace(/\b(\d+\.?\d*)\b/g, '<span class="c-number">$1</span>')
-    .replace(/\b(print|ipairs|pairs|type|tostring|tonumber|setmetatable|getmetatable|require|pcall|xpcall|error|assert|math|table|string|io)\b/g, '<span class="c-builtin">$1</span>');
+  // Process line by line so comments take priority
+  return code.split('\n').map(line => {
+    // Check if line is a comment
+    const commentIdx = line.indexOf('--');
+    if (commentIdx !== -1) {
+      const before = line.slice(0, commentIdx);
+      const comment = line.slice(commentIdx);
+      return highlightTokens(before) + '<span class="c-comment">' + escHtml(comment) + '</span>';
+    }
+    return highlightTokens(line);
+  }).join('\n');
+}
+
+function highlightTokens(text) {
+  // Tokenize: strings first, then keywords/builtins/numbers on non-string parts
+  const result = [];
+  let remaining = text;
+  const strRe = /("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/;
+  let match;
+  while ((match = strRe.exec(remaining)) !== null) {
+    // Part before the string
+    if (match.index > 0) {
+      result.push(highlightCode(remaining.slice(0, match.index)));
+    }
+    result.push('<span class="c-string">' + escHtml(match[0]) + '</span>');
+    remaining = remaining.slice(match.index + match[0].length);
+  }
+  result.push(highlightCode(remaining));
+  return result.join('');
+}
+
+function highlightCode(text) {
+  const keywords = /\b(local|function|end|if|then|elseif|else|for|while|do|repeat|until|return|and|or|not|in|break|nil|true|false)\b/g;
+  const builtins = /\b(print|ipairs|pairs|type|tostring|tonumber|setmetatable|getmetatable|require|pcall|xpcall|error|assert|math|table|string|io)\b/g;
+  const numbers  = /\b(\d+\.?\d*)\b/g;
+  // Escape first, then replace word boundaries (safe since keywords/builtins don't contain < > &)
+  return escHtml(text)
+    .replace(keywords, '<span class="c-keyword">$1</span>')
+    .replace(builtins, '<span class="c-builtin">$1</span>')
+    .replace(numbers,  '<span class="c-number">$1</span>');
 }
 
 function escHtml(s) {
