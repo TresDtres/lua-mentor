@@ -142,6 +142,7 @@ Learn Lua for Roblox, Garry's Mod & Factorio modding!
 ✅ Quiz-based progress tracking
 ✅ No install needed (runs in browser)
 
+https://github.com/TresDtres/lua-mentor
 ## 📝 License
 
 MIT — Free to use, modify and distribute. Attribution appreciated!
