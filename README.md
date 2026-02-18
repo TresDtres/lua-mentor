@@ -32,7 +32,7 @@ open lua-mentor.html
 
 ### Option 2: Local server (recommended)
 ```bash
-git clone https://github.com/YOUR_USERNAME/lua-mentor
+git clone [https://github.com/TresDtres/lua-mentor]
 cd lua-mentor
 npx serve .          # Node.js
 # OR
